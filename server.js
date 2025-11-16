@@ -97,11 +97,14 @@ const Message = mongoose.model("Message", messageSchema);
 // ===============================
 // 📌 MONGO CONNECTION
 // ===============================
-mongoose.connect(MONGODB_URI)
-.then(() => console.log("✅ MongoDB connected successfully"))
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("✅ MongoDB connected"))
 .catch(err => {
-    console.log("❌ MongoDB connection error:", err);
-    process.exit(1);
+  console.log("❌ MongoDB connection warning:", err.message);
+  // Don't exit the process, just log the error
 });
 
 // ===============================
