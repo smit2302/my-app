@@ -12,33 +12,9 @@ const session = require("express-session");
 // ===============================
 // 📌 ENVIRONMENT VARIABLES
 // ===============================
-// Temporary fix - local database use करो
-// Temporary MongoDB connection without Atlas
-const MONGODB_URI = "mongodb://localhost:27017/chatsapp";
-
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ MongoDB connected"))
-.catch(err => {
-  console.log("❌ MongoDB connection warning:", err.message);
-});
-const SESSION_SECRET = process.env.SESSION_SECRET;
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/chatsapp";
+const SESSION_SECRET = process.env.SESSION_SECRET || "chatsapp-secret-key-2024";
 const PORT = process.env.PORT || 5009;
-
-// ===============================
-// 📌 ENVIRONMENT VALIDATION
-// ===============================
-if (!MONGODB_URI) {
-    console.error("❌ MONGODB_URI environment variable is required");
-    process.exit(1);
-}
-
-if (!SESSION_SECRET) {
-    console.error("❌ SESSION_SECRET environment variable is required");
-    process.exit(1);
-}
 
 // ===============================
 // 📌 APP AND SERVER SETUP
@@ -110,11 +86,11 @@ const Message = mongoose.model("Message", messageSchema);
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000
 })
 .then(() => console.log("✅ MongoDB connected"))
 .catch(err => {
   console.log("❌ MongoDB connection warning:", err.message);
-  // Don't exit the process, just log the error
 });
 
 // ===============================
@@ -353,23 +329,6 @@ io.on("connection", (socket) => {
 
             console.log(`✅ User ${userId} registered with socket ${socket.id}`);
 
-            // Send pending messages
-            const pendingMessages = await Message.find({ 
-                to: userId, 
-                seen: false 
-            }).populate('from', 'username');
-
-            pendingMessages.forEach(msg => {
-                socket.emit("privateMessage", {
-                    _id: msg._id,
-                    fromId: msg.from._id.toString(),
-                    fromName: msg.from.username,
-                    message: msg.message,
-                    timestamp: msg.timestamp.toLocaleTimeString(),
-                    sent: false
-                });
-            });
-
         } catch (err) {
             console.log("❌ Registration error:", err);
         }
@@ -438,9 +397,6 @@ io.on("connection", (socket) => {
                 });
                 
                 console.log("✅ Message delivered to recipient");
-            } else {
-                console.log(`❌ Recipient ${to} is offline, message saved`);
-                // Message will be delivered when recipient comes online
             }
 
             // Echo to sender (ALWAYS send back to sender)
@@ -468,17 +424,6 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Typing indicators
-    socket.on("typing", (data) => {
-        const recipientSocketId = onlineUsers.get(data.to);
-        if (recipientSocketId) {
-            io.to(recipientSocketId).emit("typing", {
-                from: socket.userId,
-                typing: data.typing
-            });
-        }
-    });
-
     // Disconnect
     socket.on("disconnect", async () => {
         if (socket.userId) {
@@ -499,7 +444,6 @@ io.on("connection", (socket) => {
 // ===============================
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌐 App URL: https://your-app-name.onrender.com`);
     console.log("💬 ChatsApp Ready with All Features!");
     console.log("📱 Real-time messaging | Message status | Offline support");
 });
