@@ -12,7 +12,8 @@ const session = require("express-session");
 // ===============================
 // 📌 ENVIRONMENT VARIABLES
 // ===============================
-const MONGODB_URI = process.env.MONGODB_URI;
+// Temporary fix - local database use करो
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/chatsapp";
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const PORT = process.env.PORT || 5009;
 
