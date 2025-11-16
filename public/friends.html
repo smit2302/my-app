@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Friends - Chat App</title>
+    <link rel="stylesheet" href="style.css">
+     <link rel="icon" type="image/svg+xml" href="assets/ChatGPT Image Nov 4, 2025, 10_07_14 AM.png">
+</head>
+<body>
+    <div class="friends-container">
+        <div class="friends-box">
+            <h2>👥 Find Friends</h2>
+            
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" 
+                       placeholder="Enter username to search...">
+                <button class="search-btn" id="searchBtn">Search</button>
+            </div>
+
+            <div class="search-results" id="searchResults">
+                <div class="no-results">
+                    <p>Search for users to add as friends</p>
+                    <small>Enter a username and click search</small>
+                </div>
+            </div>
+
+            <button class="back-btn" onclick="window.location.href='/chat'">
+                ← Back to Chat
+            </button>
+
+            <div id="alertContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchResults = document.getElementById('searchResults');
+        const alertContainer = document.getElementById('alertContainer');
+
+        // Check authentication on page load
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/me');
+                const data = await response.json();
+                if (!data.success) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 4000);
+        }
+
+        // Search users function
+        async function searchUsers() {
+            const username = searchInput.value.trim();
+            
+            if (!username) {
+                showAlert('Please enter a username to search', 'error');
+                return;
+            }
+
+            if (username.length < 3) {
+                showAlert('Please enter at least 3 characters', 'error');
+                return;
+            }
+
+            // Show loading state
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching...';
+
+            try {
+                const response = await fetch(`/api/search?username=${encodeURIComponent(username)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    searchResults.innerHTML = `
+                        <div class="user-result">
+                            <div class="user-info-small">
+                                <div class="user-avatar-small">
+                                    ${data.user.username.charAt(0).toUpperCase()}
+                                </div>
+                                <div class="user-details">
+                                    <h4>${data.user.username}</h4>
+                                    <div class="status ${data.user.online ? 'online' : 'offline'}">
+                                        <div class="status-indicator ${data.user.online ? 'online' : 'offline'}"></div>
+                                        ${data.user.online ? 'Online' : 'Offline'}
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="add-friend-btn" onclick="addFriend('${data.user._id}')">
+                                Add Friend
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    searchResults.innerHTML = `
+                        <div class="no-results">
+                            <p>${data.message || 'User not found'}</p>
+                            <small>Try searching with a different username</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                showAlert('Network error. Please try again.', 'error');
+                searchResults.innerHTML = `
+                    <div class="no-results">
+                        <p>Search failed. Please try again.</p>
+                        <small>Check your internet connection</small>
+                    </div>
+                `;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = 'Search';
+            }
+        }
+
+        // Add friend function
+        async function addFriend(friendId) {
+            const addBtn = event.target;
+            const originalText = addBtn.textContent;
+            
+            addBtn.disabled = true;
+            addBtn.textContent = 'Adding...';
+
+            try {
+                const response = await fetch('/api/add-friend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ friendId }),
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    addBtn.textContent = 'Added ✓';
+                    addBtn.style.background = '#6c757d';
+                    
+                    // Redirect to chat after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/chat';
+                    }, 2000);
+                } else {
+                    showAlert(data.message, 'error');
+                    addBtn.disabled = false;
+                    addBtn.textContent = originalText;
+                }
+            } catch (error) {
+                showAlert('Network error. Please try again.', 'error');
+                addBtn.disabled = false;
+                addBtn.textContent = originalText;
+            }
+        }
+
+        // Event listeners
+        searchBtn.addEventListener('click', searchUsers);
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchUsers();
+            }
+        });
+
+        // Real-time search as user types (with debounce)
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length >= 3) {
+                searchTimeout = setTimeout(() => {
+                    searchUsers();
+                }, 500);
+            }
+        });
+
+        // Focus search input on page load
+        window.addEventListener('load', () => {
+            searchInput.focus();
+            checkAuth();
+        });
+
+        // Show recent searches or suggestions
+        function showSearchSuggestions() {
+            // You can implement recent searches here
+            console.log('Show search suggestions if needed');
+        }
+    </script>
+</body>
+</html>

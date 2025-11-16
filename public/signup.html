@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Chat App</title>
+    <link rel="stylesheet" href="style.css">
+     <link rel="icon" type="image/svg+xml" href="assets/ChatGPT Image Nov 4, 2025, 10_07_14 AM.png">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h2>Join Chat App 🚀</h2>
+            <p class="subtitle">Create your account to start chatting</p>
+            
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Choose a username" required minlength="3">
+                    <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                        Must be at least 3 characters long
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Create a password" required minlength="6">
+                    <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                        Must be at least 6 characters long
+                    </small>
+                </div>
+                
+                <button type="submit" class="btn" id="signupBtn">
+                    <span id="btnText">Create Account</span>
+                </button>
+            </form>
+            
+            <div class="auth-link">
+                Already have an account? <a href="/login">Sign in here</a>
+            </div>
+
+            <div id="alertContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const signupForm = document.getElementById('signupForm');
+        const signupBtn = document.getElementById('signupBtn');
+        const btnText = document.getElementById('btnText');
+        const alertContainer = document.getElementById('alertContainer');
+
+        function showAlert(message, type) {
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (username.length < 3) {
+                showAlert('Username must be at least 3 characters long', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('Password must be at least 6 characters long', 'error');
+                return;
+            }
+
+            // Show loading state
+            signupBtn.disabled = true;
+            btnText.textContent = 'Creating Account...';
+
+            try {
+                const response = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Account created successfully! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1500);
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            } catch (error) {
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                // Reset button state
+                signupBtn.disabled = false;
+                btnText.textContent = 'Create Account';
+            }
+        });
+
+        // Enter key support
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                signupForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // Check if user is already logged in
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/api/me');
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = '/chat';
+                }
+            } catch (error) {
+                // User not logged in, stay on signup page
+            }
+        });
+    </script>
+</body>
+</html>
