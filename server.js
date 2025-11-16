@@ -13,7 +13,17 @@ const session = require("express-session");
 // 📌 ENVIRONMENT VARIABLES
 // ===============================
 // Temporary fix - local database use करो
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/chatsapp";
+// Temporary MongoDB connection without Atlas
+const MONGODB_URI = "mongodb://localhost:27017/chatsapp";
+
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("✅ MongoDB connected"))
+.catch(err => {
+  console.log("❌ MongoDB connection warning:", err.message);
+});
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const PORT = process.env.PORT || 5009;
 
